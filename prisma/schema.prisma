@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  name          String?
+  username      String?  @unique
+  bio           String?
+  avatarUrl     String?
+  plan          String   @default("free") // free, pro, admin
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  exercises       Exercise[]
+  routines        Routine[]
+  workouts        Workout[]
+  oneRepMaxes     OneRepMax[]
+  physiquePhotos  PhysiquePhoto[]
+  progressPhotos  ProgressPhoto[]
+  aiConversations AIConversation[]
+
+  sentFriendships     Friendship[] @relation("SentRequests")
+  receivedFriendships Friendship[] @relation("ReceivedRequests")
+
+  sentShares     RoutineShare[] @relation("SentShares")
+  receivedShares RoutineShare[] @relation("ReceivedShares")
+}
+
+model Exercise {
+  id              String   @id @default(cuid())
+  userId          String
+  name            String
+  muscleGroup     String
+  secondaryMuscle String?
+  tertiaryMuscle  String?
+  equipment       String?
+  isDefault       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routineExercises  RoutineExercise[]
+  workoutExercises  WorkoutExercise[]
+  oneRepMaxes       OneRepMax[]
+
+  @@index([userId])
+  @@index([muscleGroup])
+}
+
+model Routine {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercises  RoutineExercise[]
+  workouts   Workout[]
+  shares     RoutineShare[]
+
+  @@index([userId])
+}
+
+model RoutineExercise {
+  id         String @id @default(cuid())
+  routineId  String
+  exerciseId String
+  order      Int    @default(0)
+  setsConfig String @default("[]") // JSON: [{type: "normal"|"warmup"|"failure", weight: 0, reps: 0, rir: 0}]
+
+  routine  Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([routineId])
+}
+
+model Workout {
+  id          String    @id @default(cuid())
+  userId      String
+  routineId   String?
+  name        String
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  duration    Int       @default(0) // seconds
+
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routine   Routine?           @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  exercises WorkoutExercise[]
+
+  @@index([userId])
+  @@index([completedAt])
+}
+
+model WorkoutExercise {
+  id         String @id @default(cuid())
+  workoutId  String
+  exerciseId String
+  order      Int    @default(0)
+
+  workout  Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  sets     WorkoutSet[]
+
+  @@index([workoutId])
+}
+
+model WorkoutSet {
+  id                 String  @id @default(cuid())
+  workoutExerciseId  String
+  type               String  @default("normal") // warmup, normal, failure
+  weight             Float   @default(0)
+  reps               Int     @default(0)
+  rir                Int     @default(0)
+  completed          Boolean @default(false)
+
+  workoutExercise WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+
+  @@index([workoutExerciseId])
+}
+
+model OneRepMax {
+  id         String   @id @default(cuid())
+  userId     String
+  exerciseId String
+  weight     Float
+  date       DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([exerciseId])
+}
+
+model PhysiquePhoto {
+  id        String   @id @default(cuid())
+  userId    String
+  photoUrl  String
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ProgressPhoto {
+  id         String   @id @default(cuid())
+  userId     String
+  photoUrl   String
+  date       DateTime @default(now())
+  bodyWeight Float?
+  note       String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Friendship {
+  id          String   @id @default(cuid())
+  requesterId String
+  addresseeId String
+  status      String   @default("pending") // pending, accepted, rejected
+  createdAt   DateTime @default(now())
+
+  requester User @relation("SentRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("ReceivedRequests", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([requesterId])
+  @@index([addresseeId])
+}
+
+model RoutineShare {
+  id         String   @id @default(cuid())
+  routineId  String
+  senderId   String
+  receiverId String
+  status     String   @default("pending") // pending, accepted
+  createdAt  DateTime @default(now())
+
+  sender   User    @relation("SentShares", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User    @relation("ReceivedShares", fields: [receiverId], references: [id], onDelete: Cascade)
+  routine  Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+}
+
+model AIConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   @default("Nueva conversación")
+  createdAt DateTime @default(now())
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AIMessage[]
+
+  @@index([userId])
+}
+
+model AIMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String   // user, assistant
+  content        String
+  createdAt      DateTime @default(now())
+
+  conversation AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+}
