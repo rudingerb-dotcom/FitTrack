@@ -13,7 +13,9 @@ export async function GET() {
     const userId = (session.user as any).id;
 
     const exercises = await db.exercise.findMany({
-      where: { userId },
+      where: {
+        OR: [{ userId }, { isDefault: true }],
+      },
       orderBy: [{ isDefault: "desc" }, { name: "asc" }],
     });
 

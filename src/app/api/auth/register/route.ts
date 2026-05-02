@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { db } from "@/lib/db";
-import { createDefaultExercises } from "@/lib/default-exercises";
+// Removed createDefaultExercises import
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,8 +43,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create default exercises
-    await createDefaultExercises(user.id);
+    // Los ejercicios predeterminados ahora son globales, no se duplican por usuario
 
     // Return user without password
     const { password: _, ...userWithoutPassword } = user;

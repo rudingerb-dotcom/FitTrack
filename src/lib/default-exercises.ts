@@ -31,11 +31,10 @@ const defaultExercises: DefaultExerciseInput[] = [
   { name: "Hiperextensiones", muscleGroup: "Lumbares", secondaryMuscle: "Glúteos", equipment: "Banco romano" },
 ];
 
-export async function createDefaultExercises(userId: string) {
+export async function createDefaultExercises() {
   await db.exercise.createMany({
     data: defaultExercises.map((exercise) => ({
       ...exercise,
-      userId,
       isDefault: true,
     })),
   });

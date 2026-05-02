@@ -36,7 +36,7 @@ model User {
 
 model Exercise {
   id              String   @id @default(cuid())
-  userId          String
+  userId          String?
   name            String
   muscleGroup     String
   secondaryMuscle String?
@@ -46,7 +46,7 @@ model Exercise {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
   routineExercises  RoutineExercise[]
   workoutExercises  WorkoutExercise[]
   oneRepMaxes       OneRepMax[]
